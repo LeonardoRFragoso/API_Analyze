@@ -61,7 +61,7 @@ financial_project/
 1. Clone o repositório:
 
     ```bash
-    git clone https://github.com/LeonardoRFragoso/API_Fiis_analyzer
+    git clone https://github.com/LeonardoRFragoso/API_Analyze
     cd financial_project
     ```
 
