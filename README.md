@@ -90,3 +90,4 @@ Este projeto está licenciado sob a [MIT License](LICENSE).
 ---
 
 Desenvolvido por Leonardo Fragoso
+# API_Analyze

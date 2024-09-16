@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 venv/
+=======
+venv/
+>>>>>>> b95f536a (Atualizando .gitignore para ignorar a pasta venv)

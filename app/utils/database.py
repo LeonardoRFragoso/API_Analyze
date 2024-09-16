@@ -7,6 +7,8 @@ from datetime import datetime
 def init_db():
     conn = sqlite3.connect("app/database/financial_data.db")
     c = conn.cursor()
+    
+    # Tabela de dados de ações
     c.execute('''
         CREATE TABLE IF NOT EXISTS stock_data (
             ticker TEXT,
@@ -19,6 +21,8 @@ def init_db():
             UNIQUE(ticker, date)
         )
     ''')
+
+    # Tabela de dividendos
     c.execute('''
         CREATE TABLE IF NOT EXISTS dividend_data (
             ticker TEXT,
@@ -27,6 +31,8 @@ def init_db():
             UNIQUE(ticker, date)
         )
     ''')
+
+    # Tabela de histórico de usuários
     c.execute('''
         CREATE TABLE IF NOT EXISTS user_history (
             user_id TEXT,
@@ -34,10 +40,32 @@ def init_db():
             timestamp TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+
+    # Tabela de notícias financeiras
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS financial_news (
+            ticker TEXT,
+            title TEXT,
+            description TEXT,
+            url TEXT,
+            published_at TEXT,
+            source_name TEXT
+        )
+    ''')
+
+    # Tabela de relatórios financeiros (poderá ser utilizada futuramente)
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS financial_reports (
+            ticker TEXT,
+            report_date TEXT,
+            report_data TEXT
+        )
+    ''')
+
     conn.commit()
     return conn
 
-# Salva os dados de ações no banco de dados
+# Função para salvar dados de ações no banco de dados
 def save_stock_data(conn, ticker, data):
     c = conn.cursor()
     for index, row in data.iterrows():
@@ -48,7 +76,7 @@ def save_stock_data(conn, ticker, data):
         ''', (ticker, date_str, row['Open'], row['High'], row['Low'], row['Close'], row['Volume']))
     conn.commit()
 
-# Salva os dividendos no banco de dados
+# Função para salvar dividendos no banco de dados
 def save_dividend_data(conn, ticker, dividends):
     c = conn.cursor()
     for index, value in dividends.items():
@@ -57,6 +85,16 @@ def save_dividend_data(conn, ticker, dividends):
             INSERT OR IGNORE INTO dividend_data (ticker, date, dividend)
             VALUES (?, ?, ?)
         ''', (ticker, date_str, value))
+    conn.commit()
+
+# Função para salvar notícias financeiras no banco de dados
+def save_financial_news(conn, ticker, news_data):
+    c = conn.cursor()
+    for news in news_data:
+        c.execute('''
+            INSERT INTO financial_news (ticker, title, description, url, published_at, source_name)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (ticker, news['title'], news['description'], news['url'], news['publishedAt'], news['source']['name']))
     conn.commit()
 
 # Carrega os dados de ações do banco de dados
@@ -85,6 +123,29 @@ def load_dividend_data(conn, ticker):
         return pd.Series({row[0]: row[1] for row in rows})
     return None
 
+# Carrega as notícias financeiras do banco de dados
+def load_financial_news(conn, ticker):
+    c = conn.cursor()
+    c.execute('''
+        SELECT title, description, url, published_at, source_name FROM financial_news
+        WHERE ticker = ?
+        ORDER BY published_at DESC
+    ''', (ticker,))
+    rows = c.fetchall()
+    if rows:
+        news_list = []
+        for row in rows:
+            news_item = {
+                'title': row[0],
+                'description': row[1],
+                'url': row[2],
+                'publishedAt': row[3],
+                'source': {'name': row[4]}
+            }
+            news_list.append(news_item)
+        return news_list
+    return []
+
 # Verifica se os dados de ações estão desatualizados
 def is_data_outdated(conn, ticker):
     c = conn.cursor()
@@ -96,7 +157,7 @@ def is_data_outdated(conn, ticker):
         return (datetime.today() - datetime.strptime(last_date, '%Y-%m-%d')).days > 0
     return True
 
-# Busca e salva os dividendos usando yfinance
+# Busca e salva dividendos usando yfinance
 def fetch_and_save_dividends(conn, ticker):
     ticker_data = yf.Ticker(ticker)
     dividends = ticker_data.dividends
