@@ -3,6 +3,7 @@ import datetime
 import plotly.graph_objects as go
 import yfinance as yf
 import requests
+import pandas as pd
 
 from utils.database import init_db, get_stock_data, fetch_and_save_dividends, save_dividend_data
 from utils.indicators import add_indicators
@@ -11,14 +12,21 @@ from utils.assets import FII_LIST, STOCK_LIST
 
 NEWS_API_KEY = '03c157bae35443e2911d2f8b34323ae6'
 
-
 # Função para exportar os dados como CSV
 def export_data(data, filename="data.csv", key=None):
     csv = data.to_csv().encode('utf-8')
     st.download_button("Exportar Dados para CSV", csv, file_name=filename, mime="text/csv", key=key)
 
+# Função para buscar notícias financeiras
+def fetch_financial_news(asset_code):
+    url = f"https://newsapi.org/v2/everything?q={asset_code}&apiKey={NEWS_API_KEY}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json().get("articles", [])
+    else:
+        return None
 
-# Função para exibir tabelas formatadas (preços ou dividendos)
+# Função para exibir tabelas formatadas (preços, dividendos ou relatórios)
 def display_table(data, title, filename, column_format=None, key=None):
     st.subheader(title)
     if column_format:
@@ -31,7 +39,6 @@ def display_table(data, title, filename, column_format=None, key=None):
 
     export_data(data, filename, key=key)
 
-
 # Função para exibir o valor de mercado
 def display_market_value(ticker_code):
     ticker = yf.Ticker(ticker_code)
@@ -43,33 +50,39 @@ def display_market_value(ticker_code):
     except Exception:
         st.error(f"Erro ao buscar valor de mercado para {ticker_code}. Por favor, tente novamente mais tarde.")
 
+# Função para buscar dividendos e exibir
+def display_dividends(ticker_code, conn):
+    dividends = fetch_and_save_dividends(conn, ticker_code)
+    if dividends is not None:
+        display_table(dividends, f"Histórico de Dividendos de {ticker_code}", f"{ticker_code}_dividends.csv",
+                      key=f"dividends_table_{ticker_code}")
+    else:
+        st.warning(f"Nenhum dado de dividendos disponível para {ticker_code}")
 
-# Função para buscar notícias financeiras
-def fetch_financial_news(asset_code):
-    url = f"https://newsapi.org/v2/everything?q={asset_code}&apiKey={NEWS_API_KEY}"
-    response = requests.get(url)
-    if response.status_code == 200:
-        return response.json().get("articles", [])
-    return []
+# Função para exibir relatórios financeiros completos
+def display_financial_statements(ticker_code):
+    ticker = yf.Ticker(ticker_code)
 
+    # Relatórios financeiros (DRE)
+    financials = ticker.financials
+    if not financials.empty:
+        st.subheader(f"Relatórios Financeiros de {ticker_code}")
+        st.dataframe(financials)
+        st.download_button("Exportar Dados Financeiros para CSV", financials.to_csv(), file_name=f'{ticker_code}_financials.csv')
 
-# Função utilitária para processar análise e visualização de ativos
-def analyze_asset(ticker_code, start_date, end_date, interval, sma_period, ema_period, conn):
-    data = get_stock_data(ticker_code, start_date, end_date, interval, conn)
-    if data is not None:
-        data = add_indicators(data, sma_period, ema_period)
-        display_table(data, f"Dados de Preço de {ticker_code}", f"{ticker_code}_prices.csv", 
-                      column_format={'Open': lambda x: f'R${x:,.2f}', 'High': lambda x: f'R${x:,.2f}', 
-                                     'Low': lambda x: f'R${x:,.2f}', 'Close': lambda x: f'R${x:,.2f}'}, 
-                      key=f"price_table_{ticker_code}")
-        plot_graph(data, f'{ticker_code} - Variação de Preço', 'Preço (R$)', 'Candle', sma=sma_period, ema=ema_period)
+    # Balanço patrimonial
+    balance_sheet = ticker.balance_sheet
+    if not balance_sheet.empty:
+        st.subheader(f"Balanço Patrimonial de {ticker_code}")
+        st.dataframe(balance_sheet)
+        st.download_button("Exportar Balanço Patrimonial para CSV", balance_sheet.to_csv(), file_name=f'{ticker_code}_balance_sheet.csv')
 
-        dividends = fetch_and_save_dividends(conn, ticker_code)
-        if dividends is not None:
-            display_table(dividends, f"Histórico de Dividendos de {ticker_code}", f"{ticker_code}_dividends.csv",
-                          key=f"dividends_table_{ticker_code}")
-        display_market_value(ticker_code)
-
+    # Fluxo de Caixa
+    cashflow = ticker.cashflow
+    if not cashflow.empty:
+        st.subheader(f"Fluxo de Caixa de {ticker_code}")
+        st.dataframe(cashflow)
+        st.download_button("Exportar Fluxo de Caixa para CSV", cashflow.to_csv(), file_name=f'{ticker_code}_cashflow.csv')
 
 # Função principal
 def main():
@@ -94,7 +107,17 @@ def main():
         end_date = st.sidebar.date_input("Data de Fim", datetime.date.today(), key="end_date")
 
         if st.button("Analisar", key="analyze_button"):
-            analyze_asset(ticker_code_input, start_date, end_date, interval, sma_period, ema_period, conn)
+            data = get_stock_data(ticker_code_input, start_date, end_date, interval, conn)
+            if data is not None:
+                data = add_indicators(data, sma_period, ema_period)
+                display_table(data, f"Dados de Preço de {ticker_code_input}", f"{ticker_code_input}_prices.csv", 
+                              column_format={'Open': lambda x: f'R${x:,.2f}', 'High': lambda x: f'R${x:,.2f}', 
+                                             'Low': lambda x: f'R${x:,.2f}', 'Close': lambda x: f'R${x:,.2f}'}, 
+                              key=f"price_table_{ticker_code_input}")
+                plot_graph(data, f'{ticker_code_input} - Variação de Preço', 'Preço (R$)', plot_type, sma=sma_period, ema=ema_period)
+
+                display_dividends(ticker_code_input, conn)
+                display_market_value(ticker_code_input)
 
     # Aba 2: Comparação
     with tab2:
@@ -119,16 +142,12 @@ def main():
 
                 # Exibir dividendos e valor de mercado para cada ativo
                 for asset_code in selected_assets:
-                    dividends = fetch_and_save_dividends(conn, asset_code)
-                    display_table(dividends, f"Histórico de Dividendos de {asset_code}", f"{asset_code}_dividends.csv",
-                                  key=f"dividends_table_{asset_code}")
+                    display_dividends(asset_code, conn)
                     display_market_value(asset_code)
 
     # Aba 3: Notícias e Relatórios
     with tab3:
         st.sidebar.title("Configurações de Notícias e Relatórios")
-        
-        # Permitir escolher entre FIIs e Ações para notícias
         asset_type_news = st.sidebar.selectbox("Escolha o tipo de ativo para ver notícias", ["FIIs", "Ações"], key="selectbox_news")
         asset_list_news = FII_LIST if asset_type_news == "FIIs" else STOCK_LIST
         fii_news_code = st.sidebar.selectbox(f"Escolha o {asset_type_news[:-1]} para ver notícias", asset_list_news, key="select_news_asset")
@@ -144,6 +163,10 @@ def main():
                     st.markdown(f"[Leia mais]({article['url']})")
             else:
                 st.warning(f"Não foram encontradas notícias recentes para {fii_news_code}.")
+
+        # Relatórios financeiros usando a API yfinance
+        if st.button("Buscar Relatórios Financeiros", key="reports_button"):
+            display_financial_statements(fii_news_code)
 
 if __name__ == "__main__":
     main()
