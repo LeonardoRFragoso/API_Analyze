@@ -3,3 +3,4 @@ plotly
 yfinance
 requests
 pandas
+python-decouple
