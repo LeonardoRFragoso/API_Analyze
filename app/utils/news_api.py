@@ -2,8 +2,8 @@ import datetime
 import requests
 from decouple import config  # Importa o `decouple` para carregar variáveis do arquivo .env
 
-# Pega a chave da API do arquivo .env
-NEWS_API_KEY = config('NEWS_API_KEY')  # Carrega a chave da API do arquivo .env
+# Pega a chave da API do arquivo .env ou no secrets do cloud
+NEWS_API_KEY = st.secrets["news"]["api_key"]
 
 # Função para buscar notícias financeiras
 def fetch_financial_news(fii_code, start_date=None, end_date=None):
