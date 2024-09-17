@@ -29,6 +29,10 @@ def fetch_financial_news(asset_code):
 # Função para exibir tabelas formatadas (preços, dividendos ou relatórios)
 def display_table(data, title, filename, column_format=None, key=None):
     st.subheader(title)
+    
+    # Renomear colunas para português
+    data.columns = ['Data', 'Abertura', 'Máxima', 'Mínima', 'Fechamento', 'Volume', 'Dividendos', 'Stock Splits', 'SMA', 'EMA']
+    
     if column_format:
         data_display = data.copy()
         for col, fmt in column_format.items():

@@ -1,1 +1,4 @@
+# Diretórios e arquivos a serem ignorados pelo Git
 venv/
+.streamlit/secrets.toml
+.env

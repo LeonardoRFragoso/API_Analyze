@@ -3,20 +3,20 @@ import pandas as pd
 import yfinance as yf
 from datetime import datetime
 
-# Inicializa o banco de dados e cria tabelas se não existirem
+# Inicializa o banco de dados e cria as tabelas se não existirem
 def init_db():
     conn = sqlite3.connect("app/database/financial_data.db")
     c = conn.cursor()
     
-    # Tabela de dados de ações
+    # Tabela de dados de ações (nomes de colunas em português)
     c.execute('''
         CREATE TABLE IF NOT EXISTS stock_data (
             ticker TEXT,
             date TEXT,
-            open REAL,
-            high REAL,
-            low REAL,
-            close REAL,
+            abertura REAL,
+            maxima REAL,
+            minima REAL,
+            fechamento REAL,
             volume INTEGER,
             UNIQUE(ticker, date)
         )
@@ -65,13 +65,13 @@ def init_db():
     conn.commit()
     return conn
 
-# Função para salvar dados de ações no banco de dados
+# Função para salvar dados de ações no banco de dados (usando nomes de colunas em português)
 def save_stock_data(conn, ticker, data):
     c = conn.cursor()
     for index, row in data.iterrows():
         date_str = index.strftime('%Y-%m-%d')
         c.execute('''
-            INSERT OR IGNORE INTO stock_data (ticker, date, open, high, low, close, volume)
+            INSERT OR IGNORE INTO stock_data (ticker, date, abertura, maxima, minima, fechamento, volume)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         ''', (ticker, date_str, row['Open'], row['High'], row['Low'], row['Close'], row['Volume']))
     conn.commit()
@@ -97,17 +97,17 @@ def save_financial_news(conn, ticker, news_data):
         ''', (ticker, news['title'], news['description'], news['url'], news['publishedAt'], news['source']['name']))
     conn.commit()
 
-# Carrega os dados de ações do banco de dados
+# Carrega os dados de ações do banco de dados (usando nomes de colunas em português)
 def load_stock_data(conn, ticker, start_date, end_date):
     c = conn.cursor()
     c.execute('''
-        SELECT date, open, high, low, close, volume FROM stock_data
+        SELECT date, abertura, maxima, minima, fechamento, volume FROM stock_data
         WHERE ticker = ? AND date BETWEEN ? AND ?
     ''', (ticker, start_date, end_date))
     rows = c.fetchall()
     if rows:
-        df = pd.DataFrame(rows, columns=['Date', 'Open', 'High', 'Low', 'Close', 'Volume'])
-        df.set_index('Date', inplace=True)
+        df = pd.DataFrame(rows, columns=['Data', 'Abertura', 'Máxima', 'Mínima', 'Fechamento', 'Volume'])
+        df.set_index('Data', inplace=True)
         return df
     return None
 
@@ -166,7 +166,7 @@ def fetch_and_save_dividends(conn, ticker):
         return dividends
     return None
 
-# Carrega ou busca os dados de ações e salva se necessário
+# Carrega ou busca os dados de ações e salva se necessário (colunas em português)
 def get_stock_data(ticker, start_date, end_date, interval, conn):
     data = load_stock_data(conn, ticker, start_date, end_date)
     if data is None or is_data_outdated(conn, ticker):
