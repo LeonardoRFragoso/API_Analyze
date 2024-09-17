@@ -1,9 +1,9 @@
 import datetime
 import requests
-from decouple import config  # Importa o `decouple` para carregar variáveis do arquivo .env
+import streamlit as st  # Importa o `streamlit` para acessar os segredos
 
-# Pega a chave da API do arquivo .env ou no secrets do cloud
-NEWS_API_KEY = st.secrets["news"]["api_key"]
+# Pega a chave da API diretamente dos segredos no Streamlit Cloud
+NEWS_API_KEY = st.secrets["api_key"]
 
 # Função para buscar notícias financeiras
 def fetch_financial_news(fii_code, start_date=None, end_date=None):
