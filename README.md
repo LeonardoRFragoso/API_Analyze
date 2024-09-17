@@ -3,34 +3,42 @@
 
 ## Descrição do Projeto
 
-Este projeto é uma aplicação completa desenvolvida com **Streamlit** e **yFinance** que permite o acompanhamento detalhado de FIIs e Ações da B3. O objetivo é fornecer uma plataforma de análise que exibe gráficos de preço, dividendos e indicadores técnicos, como médias móveis, além de permitir a comparação entre diferentes ativos.
+Este projeto é uma aplicação modular desenvolvida com **Streamlit**, **yFinance** e outras bibliotecas, que permite o acompanhamento detalhado de FIIs e Ações da B3. A plataforma oferece análise individual de ativos, comparação entre múltiplos ativos, visualização de notícias financeiras e relatórios financeiros, além de gráficos interativos com indicadores técnicos.
 
 ### Principais Funcionalidades:
 
-- **Análise individual** de FIIs e Ações:
-    - Exibição de dados de preço
-    - Gráficos de Candle ou Linha com indicadores (SMA e EMA)
-    - Histórico de dividendos
-    - Valor de mercado
+- **Análise Individual de FIIs e Ações**:
+    - Exibição de gráficos de preço com opções de Candle ou Linha.
+    - Indicadores técnicos: **SMA (Média Móvel Simples)** e **EMA (Média Móvel Exponencial)**.
+    - Histórico de dividendos formatados em R$.
+    - Exibição do valor de mercado do ativo.
+    - Acesso a relatórios financeiros (DRE, Balanço Patrimonial, Fluxo de Caixa).
 
-- **Comparação de múltiplos ativos**:
-    - Exibição de gráficos comparativos entre diferentes FIIs e Ações
-    - Exibição de dividendos para cada ativo
+- **Comparação de Múltiplos Ativos**:
+    - Exibição de gráficos comparativos de preço entre diferentes FIIs e Ações.
+    - Visualização de dividendos e valor de mercado para cada ativo comparado.
+
+- **Notícias Financeiras**:
+    - Busca de notícias financeiras atualizadas para FIIs e Ações através da integração com a **NewsAPI**.
+
+- **Relatórios Financeiros**:
+    - Exibição de relatórios financeiros completos, incluindo DRE (Demonstrativo de Resultados), Balanço Patrimonial e Fluxo de Caixa.
 
 ### Organização do Projeto:
 
-O projeto foi organizado seguindo boas práticas, separando suas funcionalidades em diferentes diretórios e arquivos:
+O projeto foi modularizado para facilitar a manutenção, com as funcionalidades divididas em diferentes diretórios e arquivos:
 
-- **`app/`**: Contém a lógica principal da aplicação.
-  - **`static/`**: Arquivos estáticos, como CSS ou JS (futuro).
-  - **`templates/`**: Templates HTML ou partes de UI.
-  - **`database/`**: Scripts de banco de dados e gerenciamento de dados.
-  - **`utils/`**: Funções utilitárias e helpers usados pela aplicação.
-  - **`plots/`**: Funções específicas para plotagem de gráficos.
-
-- **`tests/`**: Testes unitários e de integração para a aplicação.
-  
-- **`docs/`**: Documentação do projeto e API.
+- **`app/`**: Contém toda a lógica da aplicação.
+  - **`tabs/`**: Cada aba da aplicação foi dividida em arquivos independentes:
+    - `analysis.py`: Aba de análise individual de ativos.
+    - `comparison.py`: Aba de comparação entre múltiplos ativos.
+    - `news_reports.py`: Aba de notícias e relatórios financeiros.
+  - **`utils/`**: Funções auxiliares e utilitárias:
+    - `database.py`: Gerenciamento de banco de dados (SQLite).
+    - `helpers.py`: Funções de suporte como exibição de tabelas e formatação de dados.
+    - `news_api.py`: Integração com a **NewsAPI** para busca de notícias financeiras.
+  - **`plots/`**: Funções responsáveis pela plotagem dos gráficos.
+  - **`database/`**: Scripts relacionados ao banco de dados.
 
 ### Estrutura do Projeto:
 
@@ -38,14 +46,12 @@ O projeto foi organizado seguindo boas práticas, separando suas funcionalidades
 financial_project/
 │
 ├── app/
-│   ├── static/
-│   ├── templates/
-│   ├── database/
+│   ├── tabs/
 │   ├── utils/
 │   ├── plots/
-│   └── main.py        # Arquivo principal da aplicação
+│   ├── database/
+│   └── app.py        # Arquivo principal da aplicação
 ├── tests/
-├── docs/
 └── README.md
 ```
 
@@ -54,9 +60,10 @@ financial_project/
 - **Python 3.9+**
 - **Streamlit**: `pip install streamlit`
 - **yFinance**: `pip install yfinance`
-- **SQLite** (já incluso no Python)
+- **SQLite** (incluso no Python)
+- **NewsAPI**: Para buscar notícias financeiras, é necessário obter uma chave de API em [newsapi.org](https://newsapi.org/).
 
-### Como executar o projeto:
+### Como Executar o Projeto:
 
 1. Clone o repositório:
 
@@ -71,17 +78,30 @@ financial_project/
     pip install -r requirements.txt
     ```
 
-3. Execute a aplicação Streamlit:
+3. Crie um arquivo `.env` para armazenar sua chave da **NewsAPI** ou utilize o `secrets.toml` caso esteja utilizando o Streamlit Cloud:
 
-    ```bash
-    streamlit run app/main.py
+    ```
+    NEWS_API_KEY=your_news_api_key_here
     ```
 
-4. Acesse a aplicação no navegador no endereço [localhost:8501](http://localhost:8501).
+4. Execute a aplicação Streamlit:
+
+    ```bash
+    streamlit run app/app.py
+    ```
+
+5. Acesse a aplicação no navegador no endereço [localhost:8501](http://localhost:8501).
+
+### Modularização
+
+O projeto foi modularizado de forma que cada aba da aplicação tem sua própria responsabilidade:
+- **Análise Individual**: Mostra os gráficos e dados de um ativo específico.
+- **Comparação de Ativos**: Permite a comparação visual entre múltiplos ativos.
+- **Notícias e Relatórios**: Mostra notícias financeiras e relatórios financeiros completos.
 
 ### Contribuições
 
-Contribuições são bem-vindas! Sinta-se à vontade para abrir uma issue ou enviar um pull request com melhorias.
+Contribuições são bem-vindas! Sinta-se à vontade para abrir uma issue ou enviar um pull request com melhorias e correções.
 
 ### Licença
 
@@ -90,4 +110,3 @@ Este projeto está licenciado sob a [MIT License](LICENSE).
 ---
 
 Desenvolvido por Leonardo Fragoso
-# API_Analyze
