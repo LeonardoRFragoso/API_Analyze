@@ -11,7 +11,11 @@ def display_table(data, title, filename, column_format=None, key=None, sort_by_d
         st.error("Nenhum dado disponível para exibição.")
         return
     
-    # Redefinir o índice para remover a exibição da coluna de índice
+    # Verificar se o índice do DataFrame é uma série temporal e, se for, transformá-lo em uma coluna 'Data'
+    if data.index.name == 'Date' or data.index.name == 'Datetime':  # Verificar se o índice é do tipo Date
+        data = data.reset_index()  # Transforma o índice 'Date' em uma coluna
+
+    # Redefinir o índice para remover a exibição da coluna de índice anterior
     data = data.reset_index(drop=True)
     
     # Verificar a estrutura das colunas do DataFrame e ajustar os nomes
@@ -19,6 +23,7 @@ def display_table(data, title, filename, column_format=None, key=None, sort_by_d
     
     # Mapeamento de nomes esperados (em inglês) para PT-BR
     column_mapping = {
+        'Date': 'Data',  # Adicionar o mapeamento para a coluna 'Date'
         'Open': 'Abertura',
         'High': 'Máxima',
         'Low': 'Mínima',
@@ -33,18 +38,12 @@ def display_table(data, title, filename, column_format=None, key=None, sort_by_d
     # Verificar quais colunas estão no DataFrame e ajustar os nomes apenas das colunas presentes
     columns_to_rename = {col: column_mapping[col] for col in expected_columns if col in column_mapping}
 
-    # Verificar se as colunas essenciais estão presentes para ações
-    if 'Open' in data.columns or 'Close' in data.columns:
-        missing_columns = [col for col in ['Open', 'High', 'Low', 'Close', 'Volume'] if col not in expected_columns]
-        if missing_columns:
-            st.warning(f"Aviso: Colunas essenciais ausentes no DataFrame: {missing_columns}")
-    
     # Renomear as colunas de acordo com o mapeamento para PT-BR
     data = data.rename(columns=columns_to_rename)
 
-    # Ordenar os dados se a ordenação estiver habilitada
+    # Ordenar os dados se a ordenação estiver habilitada e a coluna 'Data' estiver presente
     if sort_by_date and 'Data' in data.columns:
-        data['Data'] = pd.to_datetime(data['Data'], errors='coerce', dayfirst=True)  # Adicionar errors='coerce'
+        data['Data'] = pd.to_datetime(data['Data'], errors='coerce', dayfirst=True)  # Garantir que as datas estão no formato correto
         data = data.sort_values(by='Data', ascending=not descending)
         data['Data'] = data['Data'].dt.strftime('%d/%m/%Y')  # Formatar datas para dd/mm/yyyy
     
@@ -58,9 +57,18 @@ def display_table(data, title, filename, column_format=None, key=None, sort_by_d
     else:
         st.dataframe(data, height=height, use_container_width=True)  # Ajustar altura e largura
 
+    # Exportar para CSV com formatação brasileira de moeda
+    data_export = data.copy()
+    # Formatar as colunas de valor monetário para o formato BRL (R$ xx,xx)
+    monetary_columns = ['Abertura', 'Máxima', 'Mínima', 'Fechamento']  # Adicionar as colunas relevantes
+    for col in monetary_columns:
+        if col in data_export.columns:
+            data_export[col] = data_export[col].apply(lambda x: f'R${x:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.'))
+    
     # Exportar para CSV
-    csv = data.to_csv(index=False).encode('utf-8')
+    csv = data_export.to_csv(index=False).encode('utf-8')
     st.download_button("Exportar para CSV", csv, file_name=filename, mime="text/csv", key=key)
+
 
 # Função para exibir dividendos
 def display_dividends(ticker_code, conn):
