@@ -57,6 +57,6 @@ def render_analysis_tab(conn):
             display_dividends(ticker_code_input, conn)
 
             # Exibir o valor de mercado do ativo
-            display_market_value(ticker_code_input)
+            # display_market_value(ticker_code_input)
         else:
             st.error(f"Não foi possível carregar os dados para {ticker_code_input}. Verifique o ticker ou tente novamente mais tarde.")
