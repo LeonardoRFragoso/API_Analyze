@@ -161,14 +161,19 @@ def is_data_outdated(conn, ticker):
 def fetch_and_save_dividends(conn, ticker):
     ticker_data = yf.Ticker(ticker)
     dividends = ticker_data.dividends
+
+    # Adicionar log para exibir os dividendos retornados no Streamlit Cloud
+    st.write(f"Dividendos retornados para {ticker}:")
+    st.write(dividends)
+
     if not dividends.empty:
         print(f"Dividendos encontrados para {ticker}: {dividends}")
         save_dividend_data(conn, ticker, dividends)
         return dividends
     else:
         print(f"Nenhum dividendo encontrado para {ticker}")
+        st.warning(f"Nenhum dividendo encontrado para {ticker}")
     return None
-
 
 # Carrega ou busca os dados de ações e salva se necessário (colunas em português)
 def get_stock_data(ticker, start_date, end_date, interval, conn):
