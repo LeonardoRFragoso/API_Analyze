@@ -56,7 +56,7 @@ def render_analysis_tab(conn):
             # Exibir dividendos (se disponíveis)
             display_dividends(ticker_code_input, conn)
 
-            # Exibir o valor de mercado do ativo
-            # display_market_value(ticker_code_input)
+            # Exibir o valor de mercado do ativo (usando fallback para Alpha Vantage)
+            display_market_value(ticker_code_input)
         else:
             st.error(f"Não foi possível carregar os dados para {ticker_code_input}. Verifique o ticker ou tente novamente mais tarde.")

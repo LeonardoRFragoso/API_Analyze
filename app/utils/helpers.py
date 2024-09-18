@@ -2,6 +2,10 @@ import streamlit as st
 import yfinance as yf
 from utils.database import fetch_and_save_dividends
 import pandas as pd
+import requests
+
+# Chave da API Alpha Vantage
+ALPHA_VANTAGE_API_KEY = st.secrets["alpha_vantage"]["api_key"]
 
 # Função para exibir tabelas com dados de ações ou dividendos
 def display_table(data, title, filename, column_format=None, key=None, sort_by_date=True, descending=True, height=400):
@@ -98,19 +102,41 @@ def display_dividends(ticker_code, conn):
     else:
         st.warning(f"Nenhum dado de dividendos disponível para {ticker_code}")
 
-# Função para exibir o valor de mercado de um ativo
+# Função para exibir o valor de mercado de um ativo (com fallback para Alpha Vantage)
 def display_market_value(ticker_code):
     ticker = yf.Ticker(ticker_code)
     try:
-        market_info = ticker.info  # Usar o método info para obter os dados financeiros
-        market_cap = market_info.get('marketCap', None)  # Obter o valor de mercado
+        market_info = ticker.info  # Tenta acessar as informações financeiras do ativo
+        market_cap = market_info.get('marketCap', None)  # Tenta obter o valor de mercado
+        
         st.subheader(f"Valor de Mercado de {ticker_code}")
+        
         if market_cap:
-            st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibir o valor de mercado formatado para BRL
+            st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibe o valor de mercado formatado
         else:
             st.warning(f"Informação de valor de mercado não disponível para {ticker_code}.")
+    except KeyError as ke:
+        st.error(f"Chave de dados não encontrada: {str(ke)}")
     except Exception as e:
-        st.error(f"Erro ao buscar valor de mercado para {ticker_code}. {str(e)}")
+        if "401" in str(e):
+            st.error(f"Erro de autorização ao buscar valor de mercado para {ticker_code}. Verificando Alpha Vantage...")
+            fallback_to_alpha_vantage(ticker_code)
+        else:
+            st.error(f"Erro ao buscar valor de mercado para {ticker_code}. {str(e)}")
+
+# Fallback para Alpha Vantage caso o Yahoo Finance falhe
+def fallback_to_alpha_vantage(ticker_code):
+    api_url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker_code}&apikey={ALPHA_VANTAGE_API_KEY}'
+    try:
+        response = requests.get(api_url)
+        data = response.json()
+        if 'MarketCapitalization' in data:
+            market_cap = float(data['MarketCapitalization'])
+            st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibe o valor de mercado formatado
+        else:
+            st.warning(f"Alpha Vantage não retornou o valor de mercado para {ticker_code}.")
+    except Exception as e:
+        st.error(f"Erro ao buscar valor de mercado via Alpha Vantage: {str(e)}")
 
 # Função para exibir relatórios financeiros (DRE, balanço patrimonial, fluxo de caixa)
 def display_financial_statements(ticker_code):
