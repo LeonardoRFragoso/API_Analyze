@@ -107,7 +107,8 @@ def display_market_value(ticker_code):
     ticker = yf.Ticker(ticker_code)
     try:
         market_info = ticker.info  # Tenta acessar as informações financeiras do ativo
-        print(market_info)  # Debug para verificar o que está sendo retornado
+        print(f"Yahoo Finance market_info: {market_info}")  # Adiciona print para depuração
+        
         market_cap = market_info.get('marketCap', None)  # Tenta obter o valor de mercado
         st.subheader(f"Valor de Mercado de {ticker_code}")
         
@@ -115,6 +116,8 @@ def display_market_value(ticker_code):
             st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibe o valor de mercado formatado
         else:
             st.warning(f"Informação de valor de mercado não disponível para {ticker_code}.")
+            print(f"market_cap ausente para {ticker_code}. Tentando Alpha Vantage...")  # Adiciona print para rastrear fallback
+            fallback_to_alpha_vantage(ticker_code)
     except KeyError as ke:
         st.error(f"Chave de dados não encontrada: {str(ke)}")
     except Exception as e:
@@ -130,15 +133,18 @@ def fallback_to_alpha_vantage(ticker_code):
     api_url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker_code}&apikey={ALPHA_VANTAGE_API_KEY}'
     try:
         response = requests.get(api_url)
-        print(response.status_code, response.json())  # Adicionar print para debugar
+        print(f"Alpha Vantage Response: {response.status_code}, {response.json()}")  # Adiciona print para depuração
+        
         data = response.json()
         if 'MarketCapitalization' in data:
             market_cap = float(data['MarketCapitalization'])
             st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibe o valor de mercado formatado
         else:
             st.warning(f"Alpha Vantage não retornou o valor de mercado para {ticker_code}.")
+            print(f"Alpha Vantage MarketCapitalization ausente para {ticker_code}")  # Depuração adicional
     except Exception as e:
         st.error(f"Erro ao buscar valor de mercado via Alpha Vantage: {str(e)}")
+        print(f"Erro Alpha Vantage: {e}")  # Depuração adicional
 
 
 # Função para exibir relatórios financeiros (DRE, balanço patrimonial, fluxo de caixa)
@@ -165,3 +171,20 @@ def display_financial_statements(ticker_code):
         st.subheader(f"Fluxo de Caixa de {ticker_code}")
         st.dataframe(cashflow)
         st.download_button("Exportar Fluxo de Caixa para CSV", cashflow.to_csv(), file_name=f'{ticker_code}_cashflow.csv')
+
+    # Exibir rendimentos trimestrais
+    earnings = ticker.earnings
+    if not earnings.empty:
+        st.subheader(f"Rendimentos Trimestrais de {ticker_code}")
+        st.dataframe(earnings)
+        st.download_button("Exportar Rendimentos Trimestrais para CSV", earnings.to_csv(), file_name=f'{ticker_code}_earnings.csv')
+
+    # Exibir recomendações de analistas
+    recommendations = ticker.recommendations
+    if recommendations is not None and not recommendations.empty:
+        st.subheader(f"Recomendações de Analistas para {ticker_code}")
+        st.dataframe(recommendations)
+        st.download_button("Exportar Recomendações de Analistas para CSV", recommendations.to_csv(), file_name=f'{ticker_code}_recommendations.csv')
+
+    else:
+        st.warning(f"Nenhuma recomendação de analistas disponível para {ticker_code}.")

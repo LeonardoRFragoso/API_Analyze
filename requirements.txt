@@ -1,6 +1,7 @@
 streamlit==1.38.0
 plotly
-yfinance==0.2.18 
+yfinance==0.2.18
 requests
 pandas==2.2.2
 python-decouple
+watchdog==2.1.9  

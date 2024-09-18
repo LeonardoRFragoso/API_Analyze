@@ -7,12 +7,13 @@ import requests
 import os
 from datetime import datetime
 
-# Chave da API Alpha Vantage
-ALPHA_VANTAGE_API_KEY = "RH45SCPHE2NHLL8W"
+# Chave da API Alpha Vantage e caminho do banco de dados obtidos do secrets
+ALPHA_VANTAGE_API_KEY = st.secrets["alpha_vantage"]["api_key"]
+DATABASE_PATH = st.secrets["database"]["path"]
 
 # Inicializa o banco de dados e cria as tabelas se não existirem
 def init_db():
-    conn = sqlite3.connect("app/database/financial_data.db")
+    conn = sqlite3.connect(DATABASE_PATH)
     c = conn.cursor()
     
     # Tabela de dados de ações (nomes de colunas em português)
