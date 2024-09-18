@@ -107,16 +107,14 @@ def display_market_value(ticker_code):
     ticker = yf.Ticker(ticker_code)
     try:
         market_info = ticker.info  # Tenta acessar as informações financeiras do ativo
+        print(market_info)  # Debug para verificar o que está sendo retornado
         market_cap = market_info.get('marketCap', None)  # Tenta obter o valor de mercado
-        
         st.subheader(f"Valor de Mercado de {ticker_code}")
-        print(f"Valor de mercado retornado: {market_cap}")  # Adicione este print para verificar no terminal
         
         if market_cap:
             st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibe o valor de mercado formatado
         else:
             st.warning(f"Informação de valor de mercado não disponível para {ticker_code}.")
-            fallback_to_alpha_vantage(ticker_code)
     except KeyError as ke:
         st.error(f"Chave de dados não encontrada: {str(ke)}")
     except Exception as e:
@@ -132,8 +130,8 @@ def fallback_to_alpha_vantage(ticker_code):
     api_url = f'https://www.alphavantage.co/query?function=OVERVIEW&symbol={ticker_code}&apikey={ALPHA_VANTAGE_API_KEY}'
     try:
         response = requests.get(api_url)
+        print(response.status_code, response.json())  # Adicionar print para debugar
         data = response.json()
-        print(f"Dados retornados da Alpha Vantage: {data}")  # Adicione este print para ver os dados retornados
         if 'MarketCapitalization' in data:
             market_cap = float(data['MarketCapitalization'])
             st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibe o valor de mercado formatado
