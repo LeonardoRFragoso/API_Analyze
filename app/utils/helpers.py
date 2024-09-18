@@ -115,6 +115,7 @@ def display_market_value(ticker_code):
             st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))  # Exibe o valor de mercado formatado
         else:
             st.warning(f"Informação de valor de mercado não disponível para {ticker_code}.")
+            fallback_to_alpha_vantage(ticker_code)
     except KeyError as ke:
         st.error(f"Chave de dados não encontrada: {str(ke)}")
     except Exception as e:
