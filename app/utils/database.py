@@ -1,6 +1,8 @@
 import sqlite3
 import pandas as pd
 import yfinance as yf
+import logging
+import streamlit as st
 from datetime import datetime
 
 # Inicializa o banco de dados e cria as tabelas se não existirem
@@ -158,12 +160,20 @@ def is_data_outdated(conn, ticker):
     return True
 
 # Busca e salva dividendos usando yfinance
+@st.cache_data(show_spinner=True)
 def fetch_and_save_dividends(conn, ticker):
+    logging.info(f"Fetching dividends for ticker: {ticker}")
+    
     ticker_data = yf.Ticker(ticker)
     dividends = ticker_data.dividends
+    
     if not dividends.empty:
+        logging.info(f"Dividends found for {ticker}: {dividends.shape[0]} records")
         save_dividend_data(conn, ticker, dividends)
         return dividends
+    else:
+        logging.warning(f"No dividends found for {ticker}")
+    
     return None
 
 # Carrega ou busca os dados de ações e salva se necessário (colunas em português)
