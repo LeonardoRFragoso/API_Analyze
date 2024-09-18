@@ -8,7 +8,7 @@ from datetime import datetime
 # Inicializa o banco de dados e cria as tabelas se não existirem
 def init_db():
     db_path = os.path.join("app", "database", "financial_data.db")
-    conn = sqlite3.connect("db_path")
+    conn = sqlite3.connect(db_path)  # Aqui você passa a variável db_path, sem aspas
     c = conn.cursor()
     
     # Tabela de dados de ações (nomes de colunas em português)
