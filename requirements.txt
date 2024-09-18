@@ -1,6 +1,6 @@
-streamlit
+streamlit==1.38.0
 plotly
 yfinance==0.2.18 
 requests
-pandas
+pandas==2.2.2
 python-decouple
