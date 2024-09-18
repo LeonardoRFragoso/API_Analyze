@@ -1,14 +1,11 @@
 import sqlite3
 import pandas as pd
 import yfinance as yf
-import streamlit as st
-import os
 from datetime import datetime
 
 # Inicializa o banco de dados e cria as tabelas se não existirem
 def init_db():
-    db_path = os.path.join("app", "database", "financial_data.db")
-    conn = sqlite3.connect(db_path)  # Aqui você passa a variável db_path, sem aspas
+    conn = sqlite3.connect("app/database/financial_data.db")
     c = conn.cursor()
     
     # Tabela de dados de ações (nomes de colunas em português)
@@ -164,18 +161,9 @@ def is_data_outdated(conn, ticker):
 def fetch_and_save_dividends(conn, ticker):
     ticker_data = yf.Ticker(ticker)
     dividends = ticker_data.dividends
-
-    # Adicionar log para exibir os dividendos retornados no Streamlit Cloud
-    st.write(f"Dividendos retornados para {ticker}:")
-    st.write(dividends)
-
     if not dividends.empty:
-        print(f"Dividendos encontrados para {ticker}: {dividends}")
         save_dividend_data(conn, ticker, dividends)
         return dividends
-    else:
-        print(f"Nenhum dividendo encontrado para {ticker}")
-        st.warning(f"Nenhum dividendo encontrado para {ticker}")
     return None
 
 # Carrega ou busca os dados de ações e salva se necessário (colunas em português)
