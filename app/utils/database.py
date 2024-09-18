@@ -1,6 +1,7 @@
 import sqlite3
 import pandas as pd
 import yfinance as yf
+import streamlit as st
 from datetime import datetime
 
 # Inicializa o banco de dados e cria as tabelas se não existirem
