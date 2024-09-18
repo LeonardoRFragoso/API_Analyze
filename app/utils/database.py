@@ -160,7 +160,6 @@ def is_data_outdated(conn, ticker):
     return True
 
 # Busca e salva dividendos usando yfinance
-@st.cache_data(show_spinner=True)
 def fetch_and_save_dividends(_conn, ticker):
     logging.info(f"Fetching dividends for ticker: {ticker}")
     
