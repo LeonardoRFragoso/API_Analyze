@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 
 # Chave da API Alpha Vantage
-ALPHA_VANTAGE_API_KEY = st.secrets["alpha_vantage"]["api_key"]
+ALPHA_VANTAGE_API_KEY = "RH45SCPHE2NHLL8W"
 
 # Inicializa o banco de dados e cria as tabelas se não existirem
 def init_db():
