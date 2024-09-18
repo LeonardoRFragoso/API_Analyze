@@ -167,6 +167,9 @@ def fetch_and_save_dividends(_conn, ticker):
     ticker_data = yf.Ticker(ticker)
     dividends = ticker_data.dividends
     
+    logging.info(f"Dividends data shape for {ticker}: {dividends.shape}")
+    logging.info(f"Dividends data preview for {ticker}: \n{dividends.head()}")
+    
     if not dividends.empty:
         logging.info(f"Dividends found for {ticker}: {dividends.shape[0]} records")
         save_dividend_data(_conn, ticker, dividends)
