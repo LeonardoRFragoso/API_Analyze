@@ -2,11 +2,13 @@ import sqlite3
 import pandas as pd
 import yfinance as yf
 import streamlit as st
+import os
 from datetime import datetime
 
 # Inicializa o banco de dados e cria as tabelas se não existirem
 def init_db():
-    conn = sqlite3.connect("app/database/financial_data.db")
+    db_path = os.path.join("app", "database", "financial_data.db")
+    conn = sqlite3.connect("db_path")
     c = conn.cursor()
     
     # Tabela de dados de ações (nomes de colunas em português)
