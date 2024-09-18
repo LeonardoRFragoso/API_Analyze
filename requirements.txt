@@ -1,6 +1,6 @@
 streamlit
 plotly
-yfinance
+yfinance==0.2.18 
 requests
 pandas
 python-decouple
