@@ -200,22 +200,28 @@ def get_market_value_alpha_vantage(ticker_code):
 def display_market_value(ticker_code):
     ticker = yf.Ticker(ticker_code)
     try:
-        # Tentar pegar o valor de mercado pela Yahoo Finance
-        market_info = ticker.info  # Usar o método info para obter os dados financeiros
-        market_cap = market_info.get('marketCap', None)  # Obter o valor de mercado
+        # Recuperar informações do ativo
+        market_info = ticker.info
         st.subheader(f"Valor de Mercado de {ticker_code}")
+
+        # Verifica se marketCap está disponível
+        market_cap = market_info.get('marketCap', None)
         if market_cap:
-            st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+            # Formatar o valor de mercado para moeda brasileira
+            formatted_market_cap = f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+            st.write(f"Valor de Mercado: {formatted_market_cap}")
         else:
-            # Se falhar, tentar pela Alpha Vantage
-            st.warning(f"Valor de mercado não disponível pela Yahoo Finance, tentando Alpha Vantage...")
-            market_cap = get_market_value_alpha_vantage(ticker_code)
-            if market_cap:
-                st.write(f"R${market_cap:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.'))
+            st.warning(f"Valor de mercado não disponível pelo Yahoo Finance para {ticker_code}. Tentando Alpha Vantage...")
+            # Fallback para Alpha Vantage
+            market_cap_alpha = get_market_value_alpha_vantage(ticker_code)
+            if market_cap_alpha:
+                formatted_market_cap_alpha = f"R${market_cap_alpha:,.2f}".replace(',', 'X').replace('.', ',').replace('X', '.')
+                st.write(f"Valor de Mercado (Alpha Vantage): {formatted_market_cap_alpha}")
             else:
-                st.warning(f"Informação de valor de mercado não disponível para {ticker_code}.")
+                st.error(f"Dados não disponíveis para o ativo {ticker_code}.")
     except Exception as e:
-        st.error(f"Erro ao buscar valor de mercado para {ticker_code}. {str(e)}")
+        st.error(f"Erro ao buscar valor de mercado para {ticker_code}: {str(e)}")
+
 
 # Carrega ou busca os dados de ações e salva se necessário (colunas em português)
 def get_stock_data(ticker, start_date, end_date, interval, conn):

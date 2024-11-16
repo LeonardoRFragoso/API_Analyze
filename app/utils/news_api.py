@@ -1,43 +1,87 @@
 import datetime
 import requests
-import streamlit as st  # Importa o `streamlit` para acessar os segredos
+import streamlit as st
 
-# Pega a chave da API diretamente dos segredos no Streamlit Cloud
+# Obtém a chave da API dos segredos do Streamlit
 NEWS_API_KEY = st.secrets["news"]["api_key"]
 
-# Função para buscar notícias financeiras
 def fetch_financial_news(fii_code, start_date=None, end_date=None):
     """
     Busca notícias relacionadas ao código do FII ou ação utilizando a NewsAPI.
-    
-    :param fii_code: Código do FII ou Ação para buscar notícias.
-    :param start_date: Data de início opcional (não utilizado diretamente na NewsAPI).
-    :param end_date: Data de fim opcional (não utilizado diretamente na NewsAPI).
-    :return: Lista de artigos encontrados ou lista vazia se não houver resultados.
+
+    Args:
+        fii_code (str): Código do FII ou ação para buscar notícias.
+        start_date (datetime.date, optional): Data de início como objeto datetime.date.
+        end_date (datetime.date, optional): Data de fim como objeto datetime.date.
+
+    Returns:
+        list: Lista de dicionários contendo os artigos encontrados ou uma lista vazia.
     """
+    if not fii_code:
+        raise ValueError("O parâmetro 'fii_code' é obrigatório.")
+    
+    # Converte as datas para strings no formato 'YYYY-MM-DD'
+    start_date_str = start_date.strftime("%Y-%m-%d") if start_date else None
+    end_date_str = end_date.strftime("%Y-%m-%d") if end_date else None
+
     # Monta a URL da API
     url = f"https://newsapi.org/v2/everything?q={fii_code}&apiKey={NEWS_API_KEY}"
-
-    # Se as datas forem fornecidas, adiciona os parâmetros de data na URL
-    if start_date and end_date:
-        url += f"&from={start_date}&to={end_date}"
-
+    if start_date_str:
+        url += f"&from={start_date_str}"
+    if end_date_str:
+        url += f"&to={end_date_str}"
+    
     try:
         # Faz a requisição GET à API
-        response = requests.get(url)
+        response = requests.get(url, timeout=10)  # Define timeout para evitar requisições travadas
         response.raise_for_status()  # Lança exceção para status de erro (4xx, 5xx)
         
-        # Retorna os artigos encontrados, se houver
-        articles = response.json().get("articles", [])
-        return articles
-    
+        # Processa a resposta JSON
+        data = response.json()
+        
+        # Valida a presença dos artigos no retorno
+        articles = data.get("articles", [])
+        if articles:
+            return articles
+        else:
+            st.warning("Nenhum artigo encontrado para o código fornecido.")
+            return []
+
     except requests.exceptions.HTTPError as http_err:
-        print(f"HTTP error occurred: {http_err}")  # Erros HTTP (404, 500, etc.)
+        st.error(f"Erro HTTP: {http_err}")
     except requests.exceptions.ConnectionError as conn_err:
-        print(f"Error connecting to the API: {conn_err}")  # Erros de conexão
+        st.error(f"Erro de conexão: {conn_err}")
     except requests.exceptions.Timeout as timeout_err:
-        print(f"Timeout error: {timeout_err}")  # Erros de timeout
+        st.error(f"Erro de timeout: {timeout_err}")
     except requests.exceptions.RequestException as req_err:
-        print(f"General error: {req_err}")  # Outros erros relacionados ao request
+        st.error(f"Erro inesperado: {req_err}")
     
     return []
+
+def display_news(articles):
+    """
+    Exibe notícias formatadas no Streamlit.
+
+    Args:
+        articles (list): Lista de dicionários contendo informações dos artigos.
+    """
+    if not articles:
+        st.warning("Nenhuma notícia disponível para exibição.")
+        return
+
+    for article in articles:
+        # Converte a data do artigo para um formato legível
+        published_date = article.get('publishedAt', None)
+        if published_date:
+            try:
+                published_date = datetime.datetime.strptime(published_date, "%Y-%m-%dT%H:%M:%SZ")
+                published_date = published_date.strftime("%d/%m/%Y %H:%M")
+            except ValueError:
+                published_date = "Data inválida"
+
+        st.write(f"### {article.get('title', 'Título não disponível')}")
+        st.write(f"**Fonte:** {article.get('source', {}).get('name', 'Desconhecida')}")
+        st.write(f"**Publicado em:** {published_date}")
+        st.write(f"**Descrição:** {article.get('description', 'Sem descrição disponível.')}")
+        st.write(f"[Leia mais]({article.get('url')})")
+        st.markdown("---")
