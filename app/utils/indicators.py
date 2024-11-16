@@ -23,14 +23,22 @@ def add_indicators(data, sma_period=None, ema_period=None, target_column='Close'
     
     # Calcular SMA, se solicitado
     if sma_period:
-        data[f'SMA_{sma_period}'] = data[target_column].rolling(window=sma_period).mean()
-    
+        sma_column_name = f'SMA_{sma_period}'
+        data[sma_column_name] = data[target_column].rolling(window=sma_period, min_periods=1).mean()
+
     # Calcular EMA, se solicitado
     if ema_period:
-        data[f'EMA_{ema_period}'] = data[target_column].ewm(span=ema_period, adjust=False).mean()
+        ema_column_name = f'EMA_{ema_period}'
+        data[ema_column_name] = data[target_column].ewm(span=ema_period, adjust=False).mean()
     
-    # Tratar valores NaN gerados pelos indicadores
-    data = data.dropna(subset=[f'SMA_{sma_period}' for sma_period in [sma_period] if sma_period] +
-                                [f'EMA_{ema_period}' for ema_period in [ema_period] if ema_period])
+    # Remover valores NaN (opcional: apenas onde os indicadores foram calculados)
+    indicators_columns = []
+    if sma_period:
+        indicators_columns.append(f'SMA_{sma_period}')
+    if ema_period:
+        indicators_columns.append(f'EMA_{ema_period}')
+
+    if indicators_columns:
+        data = data.dropna(subset=indicators_columns)
     
     return data

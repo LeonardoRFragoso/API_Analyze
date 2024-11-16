@@ -4,6 +4,21 @@ from utils.assets import FII_LIST, STOCK_LIST
 from utils.helpers import display_financial_statements
 import datetime
 
+# Função cacheada para buscar notícias financeiras
+@st.cache_data
+def cached_fetch_financial_news(asset_code, start_date):
+    """
+    Busca notícias financeiras usando cache para melhorar o desempenho.
+
+    Args:
+        asset_code (str): Código do ativo.
+        start_date (str): Data de início no formato 'YYYY-MM-DD'.
+
+    Returns:
+        list: Lista de artigos de notícias.
+    """
+    return fetch_financial_news(asset_code, start_date=start_date)
+
 def render_news_reports_tab(conn):
     """
     Renderiza a aba de Notícias e Relatórios Financeiros no Streamlit.
@@ -36,24 +51,37 @@ def render_news_reports_tab(conn):
 
     # Botão para buscar notícias
     if st.button("Buscar Notícias"):
+        if not asset_code:
+            st.warning("Selecione um ativo para buscar notícias.")
+            return
+
         st.info(f"Buscando notícias para {asset_code} desde {start_date_news}. Por favor, aguarde...")
 
         try:
             # Converte a data para o formato 'YYYY-MM-DD'
             start_date_str = start_date_news.strftime("%Y-%m-%d")
-            news = fetch_financial_news(asset_code, start_date=start_date_str)
+            news = cached_fetch_financial_news(asset_code, start_date=start_date_str)
 
             if news:
                 st.subheader(f"Notícias Recentes sobre {asset_code}")
                 for article in news:
-                    st.markdown(f"### {article.get('title', 'Título não disponível')}")
-                    st.markdown(f"*Fonte: {article.get('source', {}).get('name', 'Desconhecida')}*")
-                    st.markdown(f"**Publicado em:** {article.get('publishedAt', 'Data não disponível')[:10]}")
-                    st.markdown(f"{article.get('description', 'Descrição não disponível.')}")
-                    st.markdown(f"[Leia mais]({article.get('url', '#')})")
-                    if article.get('urlToImage'):
-                        st.image(article['urlToImage'], use_column_width=True)
-                    st.markdown("---")
+                    with st.expander(article.get("title", "Título não disponível")):
+                        st.markdown(f"*Fonte: {article.get('source', {}).get('name', 'Desconhecida')}*")
+                        published_date = article.get("publishedAt", None)
+                        if published_date:
+                            try:
+                                # Formatar a data para um formato legível
+                                published_date = datetime.datetime.strptime(
+                                    published_date, "%Y-%m-%dT%H:%M:%SZ"
+                                ).strftime("%d/%m/%Y %H:%M")
+                            except ValueError:
+                                published_date = "Data inválida"
+                        st.markdown(f"**Publicado em:** {published_date}")
+                        st.markdown(f"**Descrição:** {article.get('description', 'Descrição não disponível.')}")
+                        if article.get("url"):
+                            st.markdown(f"[Leia mais]({article['url']})")
+                        if article.get("urlToImage"):
+                            st.image(article["urlToImage"], use_column_width=True)
             else:
                 st.warning(f"Não foram encontradas notícias recentes para {asset_code} desde {start_date_news}.")
 
@@ -62,6 +90,10 @@ def render_news_reports_tab(conn):
 
     # Botão para buscar relatórios financeiros
     if st.button("Buscar Relatórios Financeiros"):
+        if not asset_code:
+            st.warning("Selecione um ativo para buscar relatórios financeiros.")
+            return
+
         st.info(f"Buscando relatórios financeiros para {asset_code}. Por favor, aguarde...")
 
         try:

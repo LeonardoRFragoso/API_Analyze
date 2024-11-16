@@ -6,6 +6,15 @@ from plots.plot_functions import plot_graph
 from utils.helpers import display_table, display_market_value, display_dividends
 from utils.assets import FII_LIST, STOCK_LIST
 
+# Função para buscar dados com cache, ignorando a conexão diretamente
+@st.cache_data
+def cached_stock_data(ticker_code, start_date, end_date, interval):
+    """
+    Função cacheável para buscar dados do ativo, ignorando a conexão no cache.
+    """
+    return ticker_code, start_date, end_date, interval
+
+# Função para renderizar a aba de análise
 def render_analysis_tab(conn):
     """
     Renderiza a aba de análise de FIIs ou ações no Streamlit.
@@ -42,17 +51,23 @@ def render_analysis_tab(conn):
         st.info(f"Carregando dados para {ticker_code_input}. Por favor, aguarde...")
 
         try:
+            # Obter argumentos para a função cacheada
+            ticker_code, start_date_cached, end_date_cached, interval_cached = cached_stock_data(
+                ticker_code_input, start_date, end_date, interval
+            )
+
             # Buscar os dados do ativo para o período selecionado
-            data = get_stock_data(ticker_code_input, start_date, end_date, interval, conn)
+            data = get_stock_data(ticker_code, start_date_cached, end_date_cached, interval_cached, conn)
 
             if data is None or data.empty:
                 st.warning(f"Não foram encontrados dados para {ticker_code_input} no intervalo selecionado.")
                 return
 
             # Verificar se as colunas esperadas estão no DataFrame
-            expected_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
-            if not all(col in data.columns for col in expected_columns):
-                st.error("Os dados retornados não possuem o formato esperado.")
+            required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+            missing_columns = [col for col in required_columns if col not in data.columns]
+            if missing_columns:
+                st.error(f"Os dados retornados não possuem as colunas esperadas: {', '.join(missing_columns)}")
                 return
 
             # Adicionar indicadores (SMA e EMA) aos dados
@@ -63,18 +78,19 @@ def render_analysis_tab(conn):
 
             # Exibir tabela de preços formatada
             st.info("Gerando tabela de preços...")
-            display_table(
-                data,
-                title=f"Dados de Preço de {ticker_code_input}",
-                filename=f"{ticker_code_input}_prices.csv",
-                column_format={
-                    'Abertura': lambda x: f'R${x:,.2f}',
-                    'Máxima': lambda x: f'R${x:,.2f}',
-                    'Mínima': lambda x: f'R${x:,.2f}',
-                    'Fechamento': lambda x: f'R${x:,.2f}'
-                },
-                key=f"price_table_{ticker_code_input}"
-            )
+            with st.expander("Ver Dados Detalhados"):
+                display_table(
+                    data,
+                    title=f"Dados de Preço de {ticker_code_input}",
+                    filename=f"{ticker_code_input}_prices.csv",
+                    column_format={
+                        'Abertura': lambda x: f'R${x:,.2f}',
+                        'Máxima': lambda x: f'R${x:,.2f}',
+                        'Mínima': lambda x: f'R${x:,.2f}',
+                        'Fechamento': lambda x: f'R${x:,.2f}'
+                    },
+                    key=f"price_table_{ticker_code_input}"
+                )
 
             # Exibir gráfico de preços
             st.info("Gerando gráfico de preços...")
@@ -82,7 +98,7 @@ def render_analysis_tab(conn):
                 data,
                 title=f'{ticker_code_input} - Variação de Preço',
                 y_label='Preço (R$)',
-                graph_type=plot_type,  # Nome do argumento corrigido
+                graph_type=plot_type,
                 sma=sma_period,
                 ema=ema_period
             )
@@ -97,3 +113,4 @@ def render_analysis_tab(conn):
 
         except Exception as e:
             st.error(f"Ocorreu um erro ao carregar os dados: {str(e)}")
+            st.error("Verifique se as configurações estão corretas ou tente novamente mais tarde.")

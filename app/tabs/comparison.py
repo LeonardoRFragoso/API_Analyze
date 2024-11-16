@@ -5,6 +5,23 @@ from utils.database import get_stock_data
 import plotly.graph_objects as go
 from utils.assets import FII_LIST, STOCK_LIST
 
+# Função para buscar dados com cache
+@st.cache_data
+def cached_stock_data(asset_code, start_date, end_date, interval):
+    """
+    Função cacheável para buscar dados de um ativo.
+
+    Args:
+        asset_code (str): Código do ativo.
+        start_date (datetime.date): Data de início.
+        end_date (datetime.date): Data de fim.
+        interval (str): Intervalo de tempo.
+
+    Returns:
+        pd.DataFrame: Dados do ativo.
+    """
+    return asset_code, start_date, end_date, interval
+
 def render_comparison_tab(conn):
     """
     Renderiza a aba de comparação de ativos no Streamlit.
@@ -57,7 +74,14 @@ def render_comparison_tab(conn):
         # Buscar os dados de cada ativo selecionado
         for asset_code in selected_assets:
             try:
-                data = get_stock_data(asset_code, start_date, end_date, interval, conn)
+                # Obter parâmetros da função cacheada
+                cached_code, cached_start, cached_end, cached_interval = cached_stock_data(
+                    asset_code, start_date, end_date, interval
+                )
+
+                # Buscar dados reais com a conexão ao banco de dados
+                data = get_stock_data(cached_code, cached_start, cached_end, cached_interval, conn)
+
                 if data is not None and not data.empty:
                     # Ordenar os dados por data em ordem decrescente
                     data = data.sort_index(ascending=False)
@@ -98,7 +122,9 @@ def render_comparison_tab(conn):
             # Exibir dividendos e valor de mercado para cada ativo comparado
             for asset_code in selected_assets:
                 st.subheader(f"Dados de {asset_code}")
-                display_dividends(asset_code, conn)
-                display_market_value(asset_code)
+                with st.expander("Histórico de Dividendos"):
+                    display_dividends(asset_code, conn)
+                with st.expander("Valor de Mercado"):
+                    display_market_value(asset_code)
         else:
             st.warning("Nenhum dado foi encontrado para os ativos selecionados.")

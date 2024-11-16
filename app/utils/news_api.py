@@ -21,27 +21,19 @@ def fetch_financial_news(fii_code, start_date=None, end_date=None):
         raise ValueError("O parâmetro 'fii_code' é obrigatório.")
     
     # Garantir que as datas estão no formato correto
-    if isinstance(start_date, datetime.date):
-        start_date_str = start_date.strftime("%Y-%m-%d")
-    elif isinstance(start_date, str):
-        try:
-            datetime.datetime.strptime(start_date, "%Y-%m-%d")
-            start_date_str = start_date
-        except ValueError:
-            raise ValueError("start_date deve estar no formato 'YYYY-MM-DD' ou ser um objeto datetime.date.")
-    else:
-        start_date_str = None
+    def format_date(date):
+        if isinstance(date, datetime.date):
+            return date.strftime("%Y-%m-%d")
+        elif isinstance(date, str):
+            try:
+                datetime.datetime.strptime(date, "%Y-%m-%d")
+                return date
+            except ValueError:
+                raise ValueError("A data deve estar no formato 'YYYY-MM-DD' ou ser um objeto datetime.date.")
+        return None
 
-    if isinstance(end_date, datetime.date):
-        end_date_str = end_date.strftime("%Y-%m-%d")
-    elif isinstance(end_date, str):
-        try:
-            datetime.datetime.strptime(end_date, "%Y-%m-%d")
-            end_date_str = end_date
-        except ValueError:
-            raise ValueError("end_date deve estar no formato 'YYYY-MM-DD' ou ser um objeto datetime.date.")
-    else:
-        end_date_str = None
+    start_date_str = format_date(start_date)
+    end_date_str = format_date(end_date)
 
     # Monta a URL da API
     url = f"https://newsapi.org/v2/everything?q={fii_code}&apiKey={NEWS_API_KEY}"
@@ -63,17 +55,11 @@ def fetch_financial_news(fii_code, start_date=None, end_date=None):
         if articles:
             return articles
         else:
-            st.warning("Nenhum artigo encontrado para o código fornecido.")
+            st.warning(f"Nenhum artigo encontrado para o código '{fii_code}'.")
             return []
 
-    except requests.exceptions.HTTPError as http_err:
-        st.error(f"Erro HTTP: {http_err}")
-    except requests.exceptions.ConnectionError as conn_err:
-        st.error(f"Erro de conexão: {conn_err}")
-    except requests.exceptions.Timeout as timeout_err:
-        st.error(f"Erro de timeout: {timeout_err}")
     except requests.exceptions.RequestException as req_err:
-        st.error(f"Erro inesperado: {req_err}")
+        st.error(f"Erro ao buscar notícias: {req_err}")
     
     return []
 
@@ -102,5 +88,8 @@ def display_news(articles):
         st.write(f"**Fonte:** {article.get('source', {}).get('name', 'Desconhecida')}")
         st.write(f"**Publicado em:** {published_date}")
         st.write(f"**Descrição:** {article.get('description', 'Sem descrição disponível.')}")
-        st.write(f"[Leia mais]({article.get('url')})")
+        if article.get('url'):
+            st.write(f"[Leia mais]({article.get('url')})")
+        if article.get('urlToImage'):
+            st.image(article['urlToImage'], use_column_width=True)
         st.markdown("---")

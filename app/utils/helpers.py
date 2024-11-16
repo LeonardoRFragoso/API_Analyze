@@ -16,11 +16,11 @@ def display_table(data, title, filename, column_format=None, sort_by_date=True, 
         data (pd.DataFrame): Dados para exibição.
         title (str): Título da tabela.
         filename (str): Nome do arquivo para download.
-        column_format (dict, optional): Formatação personalizada para colunas. Ex.: {'Close': lambda x: f'R${x:,.2f}'}
+        column_format (dict, optional): Formatação personalizada para colunas.
         sort_by_date (bool, optional): Ordenar os dados pela coluna 'Data'.
         descending (bool, optional): Ordenar em ordem decrescente.
         height (int, optional): Altura da tabela exibida.
-        key (str, optional): Chave única para evitar re-renderizações no Streamlit. Padrão: None.
+        key (str, optional): Chave única para evitar re-renderizações no Streamlit.
     """
     st.subheader(title)
 
@@ -28,11 +28,11 @@ def display_table(data, title, filename, column_format=None, sort_by_date=True, 
         st.error("Nenhum dado disponível para exibição.")
         return
 
-    # Se o índice for do tipo Date, transformá-lo em uma coluna
+    # Resetar índice se for DatetimeIndex
     if isinstance(data.index, pd.DatetimeIndex):
         data = data.reset_index()
 
-    # Renomear colunas de inglês para português (se relevante)
+    # Renomear colunas (de inglês para português, se aplicável)
     column_mapping = {
         'Date': 'Data',
         'Open': 'Abertura',
@@ -45,29 +45,27 @@ def display_table(data, title, filename, column_format=None, sort_by_date=True, 
     }
     data = data.rename(columns={col: column_mapping.get(col, col) for col in data.columns})
 
-    # Ordenar dados pela coluna Data (se habilitado)
+    # Ordenar dados pela coluna 'Data', se solicitado
     if sort_by_date and 'Data' in data.columns:
         data['Data'] = pd.to_datetime(data['Data'], errors='coerce')
         data = data.sort_values(by='Data', ascending=not descending)
         data['Data'] = data['Data'].dt.strftime('%d/%m/%Y')
 
-    # Aplicar formatação personalizada nas colunas
+    # Aplicar formatação personalizada, se especificado
     if column_format:
         for col, fmt in column_format.items():
             if col in data.columns:
                 data[col] = data[col].apply(fmt)
 
-    # Exibir a tabela no Streamlit
+    # Exibir a tabela e permitir download em CSV
     st.dataframe(data, height=height, use_container_width=True)
-
-    # Exportar tabela para CSV
     csv = data.to_csv(index=False).encode('utf-8')
     st.download_button("Exportar para CSV", csv, file_name=filename, mime="text/csv", key=key)
 
 # Função para exibir dividendos
 def display_dividends(ticker_code, conn):
     """
-    Exibe dividendos de um ativo, com suporte a download em CSV.
+    Exibe dividendos de um ativo com suporte para download em CSV.
 
     Args:
         ticker_code (str): Código do ativo.
@@ -87,9 +85,9 @@ def display_dividends(ticker_code, conn):
             descending=True
         )
     else:
-        st.warning(f"Nenhum dado de dividendos disponível para {ticker_code}")
+        st.warning(f"Nenhum dado de dividendos disponível para {ticker_code}.")
 
-# Função para exibir valor de mercado com fallback para Alpha Vantage
+# Função para exibir valor de mercado
 def display_market_value(ticker_code):
     """
     Exibe o valor de mercado do ativo, com fallback para Alpha Vantage.
@@ -135,7 +133,7 @@ def fallback_to_alpha_vantage(ticker_code):
 # Função para exibir relatórios financeiros
 def display_financial_statements(ticker_code):
     """
-    Exibe relatórios financeiros como DRE, balanço patrimonial e fluxo de caixa.
+    Exibe relatórios financeiros, como DRE, balanço patrimonial e fluxo de caixa.
 
     Args:
         ticker_code (str): Código do ativo.
@@ -145,8 +143,11 @@ def display_financial_statements(ticker_code):
     def export_and_display(data, title, filename):
         if data is not None and not data.empty:
             st.subheader(title)
-            st.dataframe(data)
-            st.download_button(f"Exportar {title} para CSV", data.to_csv(), file_name=filename)
+            st.dataframe(data, use_container_width=True)
+            csv = data.to_csv().encode('utf-8')
+            st.download_button(f"Exportar {title} para CSV", csv, file_name=filename, mime="text/csv")
+        else:
+            st.warning(f"Nenhum dado disponível para {title}.")
 
     export_and_display(ticker.financials, f"Relatório Financeiro de {ticker_code}", f"{ticker_code}_financials.csv")
     export_and_display(ticker.balance_sheet, f"Balanço Patrimonial de {ticker_code}", f"{ticker_code}_balance_sheet.csv")

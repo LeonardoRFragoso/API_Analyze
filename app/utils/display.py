@@ -2,7 +2,7 @@ import streamlit as st
 import yfinance as yf
 import pandas as pd
 
-# Utilitário para formatação
+# Utilitário para formatação de valores
 def format_currency(value):
     """
     Formata um número para moeda brasileira (R$).
@@ -26,17 +26,18 @@ def display_table(data, title, index_name=None, column_name=None, format_func=No
             data.index.name = index_name
         if column_name:
             data.columns = [column_name]
-        st.dataframe(data)
+        st.dataframe(data, use_container_width=True)
 
-# Exibe dados de preço formatados
+# Exibe tabela de preços formatados
 def display_price_table(data):
     """
-    Exibe uma tabela de dados de preço formatados.
+    Exibe uma tabela de dados de preços formatados.
     """
-    if data is not None:
+    if data is not None and not data.empty:
         formatted_data = data.copy()
         for col in ['Open', 'High', 'Low', 'Close']:
-            formatted_data[col] = formatted_data[col].apply(format_currency)
+            if col in formatted_data.columns:
+                formatted_data[col] = formatted_data[col].apply(format_currency)
         display_table(formatted_data, "Tabela de Preços", index_name="Data")
 
 # Exibe tabela de dividendos
@@ -45,25 +46,27 @@ def display_dividends_table(dividends, ticker_code):
     Exibe o histórico de dividendos formatados.
     """
     if dividends is None or dividends.empty:
-        st.warning(f"Nenhum dado de dividendos disponível para {ticker_code}")
+        st.warning(f"Nenhum dado de dividendos disponível para {ticker_code}.")
     else:
+        formatted_dividends = dividends.reset_index()
+        formatted_dividends.columns = ['Data', 'Dividendos']
+        formatted_dividends['Data'] = pd.to_datetime(formatted_dividends['Data']).dt.strftime('%d/%m/%Y')
+        formatted_dividends['Dividendos'] = formatted_dividends['Dividendos'].apply(format_currency)
         display_table(
-            dividends,
+            formatted_dividends,
             f"Histórico de Dividendos de {ticker_code}",
             index_name="Data",
-            column_name="Dividendos (R$)",
-            format_func=format_currency
+            column_name="Dividendos (R$)"
         )
 
 # Busca e exibe o valor de mercado
 def display_market_value(ticker_code):
     """
-    Exibe o valor de mercado de um ativo, com fallback em caso de dados ausentes.
+    Exibe o valor de mercado de um ativo.
     """
     try:
         ticker = yf.Ticker(ticker_code)
-        market_info = ticker.info
-        market_cap = market_info.get('marketCap', None)
+        market_cap = ticker.info.get('marketCap', None)
         st.subheader(f"Valor de Mercado de {ticker_code}")
         if market_cap:
             st.write(f"Valor de Mercado: {format_currency(market_cap)}")
@@ -77,7 +80,7 @@ def display_price_chart(data):
     """
     Exibe um gráfico de preços com dados de fechamento.
     """
-    if data is not None and not data.empty:
+    if data is not None and 'Close' in data.columns:
         st.line_chart(data['Close'])
     else:
         st.warning("Nenhum dado de preços disponível para o gráfico.")
@@ -87,7 +90,7 @@ def download_data_as_csv(data, filename):
     """
     Permite o download dos dados exibidos em formato CSV.
     """
-    csv = data.to_csv(index=False)
+    csv = data.to_csv(index=True).encode('utf-8')
     st.download_button(
         label="Baixar como CSV",
         data=csv,
@@ -107,25 +110,33 @@ def main():
     start_date = st.sidebar.date_input("Data de Início", value=pd.Timestamp('2022-01-01'))
     end_date = st.sidebar.date_input("Data de Fim", value=pd.Timestamp.today())
 
+    if start_date > end_date:
+        st.error("A data de início não pode ser maior que a data de fim.")
+        return
+
     # Carrega dados do Yahoo Finance
     try:
         ticker = yf.Ticker(ticker_code)
         historical_data = ticker.history(start=start_date, end=end_date)
         dividends = ticker.dividends
 
-        # Exibe os dados
         st.header(f"Análise para {ticker_code}")
         display_market_value(ticker_code)
-        display_price_chart(historical_data)
-        display_price_table(historical_data)
-        display_dividends_table(dividends, ticker_code)
 
-        # Download dos dados
-        st.subheader("Download dos Dados")
+        # Exibe gráfico de preços e tabela
         if not historical_data.empty:
+            display_price_chart(historical_data)
+            display_price_table(historical_data)
             download_data_as_csv(historical_data, f"{ticker_code}_precos.csv")
+        else:
+            st.warning("Nenhum dado de preço disponível para o intervalo selecionado.")
+
+        # Exibe tabela de dividendos
         if not dividends.empty:
-            download_data_as_csv(dividends, f"{ticker_code}_dividendos.csv")
+            display_dividends_table(dividends, ticker_code)
+            download_data_as_csv(dividends.reset_index(), f"{ticker_code}_dividendos.csv")
+        else:
+            st.warning("Nenhum dado de dividendos disponível para o intervalo selecionado.")
     except Exception as e:
         st.error(f"Erro ao carregar dados para {ticker_code}: {str(e)}")
 
