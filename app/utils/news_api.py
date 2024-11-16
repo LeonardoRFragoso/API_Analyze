@@ -11,8 +11,8 @@ def fetch_financial_news(fii_code, start_date=None, end_date=None):
 
     Args:
         fii_code (str): Código do FII ou ação para buscar notícias.
-        start_date (datetime.date, optional): Data de início como objeto datetime.date.
-        end_date (datetime.date, optional): Data de fim como objeto datetime.date.
+        start_date (datetime.date | str, optional): Data de início como objeto datetime.date ou string.
+        end_date (datetime.date | str, optional): Data de fim como objeto datetime.date ou string.
 
     Returns:
         list: Lista de dicionários contendo os artigos encontrados ou uma lista vazia.
@@ -20,9 +20,28 @@ def fetch_financial_news(fii_code, start_date=None, end_date=None):
     if not fii_code:
         raise ValueError("O parâmetro 'fii_code' é obrigatório.")
     
-    # Converte as datas para strings no formato 'YYYY-MM-DD'
-    start_date_str = start_date.strftime("%Y-%m-%d") if start_date else None
-    end_date_str = end_date.strftime("%Y-%m-%d") if end_date else None
+    # Garantir que as datas estão no formato correto
+    if isinstance(start_date, datetime.date):
+        start_date_str = start_date.strftime("%Y-%m-%d")
+    elif isinstance(start_date, str):
+        try:
+            datetime.datetime.strptime(start_date, "%Y-%m-%d")
+            start_date_str = start_date
+        except ValueError:
+            raise ValueError("start_date deve estar no formato 'YYYY-MM-DD' ou ser um objeto datetime.date.")
+    else:
+        start_date_str = None
+
+    if isinstance(end_date, datetime.date):
+        end_date_str = end_date.strftime("%Y-%m-%d")
+    elif isinstance(end_date, str):
+        try:
+            datetime.datetime.strptime(end_date, "%Y-%m-%d")
+            end_date_str = end_date
+        except ValueError:
+            raise ValueError("end_date deve estar no formato 'YYYY-MM-DD' ou ser um objeto datetime.date.")
+    else:
+        end_date_str = None
 
     # Monta a URL da API
     url = f"https://newsapi.org/v2/everything?q={fii_code}&apiKey={NEWS_API_KEY}"
