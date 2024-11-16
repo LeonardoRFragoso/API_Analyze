@@ -58,6 +58,9 @@ def render_analysis_tab(conn):
             # Adicionar indicadores (SMA e EMA) aos dados
             data = add_indicators(data, sma_period=sma_period, ema_period=ema_period)
 
+            # Ordenar os dados em ordem decrescente de data
+            data = data.sort_index(ascending=False)
+
             # Exibir tabela de preços formatada
             st.info("Gerando tabela de preços...")
             display_table(

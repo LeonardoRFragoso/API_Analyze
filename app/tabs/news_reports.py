@@ -29,22 +29,29 @@ def render_news_reports_tab(conn):
         "Data de Início", value=datetime.date.today()
     )
 
+    # Verificar se a data de início é válida
+    if start_date_news > datetime.date.today():
+        st.error("Erro: A data de início não pode ser maior que a data atual.")
+        return
+
     # Botão para buscar notícias
     if st.button("Buscar Notícias"):
         st.info(f"Buscando notícias para {asset_code} desde {start_date_news}. Por favor, aguarde...")
 
         try:
-            news = fetch_financial_news(asset_code, start_date_news)
+            # Converte a data para o formato 'YYYY-MM-DD'
+            start_date_str = start_date_news.strftime("%Y-%m-%d")
+            news = fetch_financial_news(asset_code, start_date=start_date_str)
 
             if news:
                 st.subheader(f"Notícias Recentes sobre {asset_code}")
                 for article in news:
-                    st.markdown(f"### {article['title']}")
-                    st.markdown(f"*Fonte: {article['source']['name']}*")
-                    st.markdown(f"**Publicado em:** {article['publishedAt'][:10]}")
-                    st.markdown(f"{article['description']}")
-                    st.markdown(f"[Leia mais]({article['url']})")
-                    if 'urlToImage' in article and article['urlToImage']:
+                    st.markdown(f"### {article.get('title', 'Título não disponível')}")
+                    st.markdown(f"*Fonte: {article.get('source', {}).get('name', 'Desconhecida')}*")
+                    st.markdown(f"**Publicado em:** {article.get('publishedAt', 'Data não disponível')[:10]}")
+                    st.markdown(f"{article.get('description', 'Descrição não disponível.')}")
+                    st.markdown(f"[Leia mais]({article.get('url', '#')})")
+                    if article.get('urlToImage'):
                         st.image(article['urlToImage'], use_column_width=True)
                     st.markdown("---")
             else:

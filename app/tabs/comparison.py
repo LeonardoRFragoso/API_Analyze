@@ -59,6 +59,8 @@ def render_comparison_tab(conn):
             try:
                 data = get_stock_data(asset_code, start_date, end_date, interval, conn)
                 if data is not None and not data.empty:
+                    # Ordenar os dados por data em ordem decrescente
+                    data = data.sort_index(ascending=False)
                     data_dict[asset_code] = data
                 else:
                     errored_assets.append(asset_code)
